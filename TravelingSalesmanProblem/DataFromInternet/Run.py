@@ -1,4 +1,4 @@
-import Algorithms as alg
+import Algorithms as opt
 import json
 import numpy as np
 import PotentialKPIfcts as pot
@@ -14,7 +14,7 @@ def run_algorithms(data, method, weights):
 
     for i in range(len(data)):    
         print('problem ', i)    
-        path_w, length_w, num_iterations_w = alg.local_search(data[i][0], data[i][1], 0, eval('pot.no_potential'))
+        path_w, length_w, num_iterations_w = opt.local_search(data[i][0], data[i][1], 0, eval('pot.no_potential'))
         results_w[i] = length_w
         time_w[i] = num_iterations_w
 
@@ -29,8 +29,8 @@ def run_algorithms(data, method, weights):
             results_www[w][i] = length_www
             time_www[w][i] = num_iterations_w + num_iterations_www_1 + num_iterations_www_2
 
-    f = open("Results_TSP"+str(method)+".txt", "w", encoding="utf-8")
-    json.dump([results_w, time_w, results_ww, time_ww, results_www, time_www], f)
+    f = open("Results_TSP_"+str(method)+".txt", "w", encoding="utf-8")
+    json.dump([results_w, time_w, results_ww, time_ww, results_www, time_www, weights], f)
     f.close()
 
     return results_w, time_w, results_ww, time_ww, results_www, time_www

@@ -1,6 +1,7 @@
 import numpy as np
 import PrepareData as pd
 import Run as run
+import PlotResults
 
 """ Initials """
 #Weights of the objective functions & potential KPI
@@ -20,3 +21,7 @@ for i in range(len(methods)):
     time_www.append(n6)
 
 """ Plot results """
+for m in methods:
+    print(PlotResults.simple_plot(m))
+    print(PlotResults.histogram(m))
+    print(PlotResults.boxplot(m))
