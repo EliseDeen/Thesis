@@ -2,59 +2,196 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-def no_potential(problem, path, c):
+def no_potential(problem, path, c, closest):
     curLength = 0
     for i in range(len(path)):
         if i == len(path)-1:
             curLength += problem.get_weight(path[i], path[0])
         else:
             curLength += problem.get_weight(path[i], path[i+1])
-    return curLength
+    return curLength, closest
 
-def potential_idea5(problem, path, c): #lijkt te werken, heel erg vergelijkbaar met 4
+def no_potential_change(problem, path, curr_length, x, y, c, closest):
+    if x == len(path)-1:
+        x2 = 0
+    else:
+        x2 = x+1
+    if y == len(path)-1:
+        y2 = 0
+    else:
+        y2 = y+1
+    length = curr_length - problem.get_weight(path[x], path[x2]) - problem.get_weight(path[y], path[y2])
+    length += problem.get_weight(path[x], path[y]) + problem.get_weight(path[x2], path[y2])
+    return length, closest
+
+def min_dist_inserted_in_edge(problem, path, i, exclude=[]):
+    min_distance = np.infty
+    closest = [0, np.infty, 0, np.infty]
+    for j in range(len(path)):
+        if j == i or j == i-1 or (i == 0 and j == len(path)-1) or j in exclude:
+            continue
+        if j == len(path)-1:
+            dist1 = problem.get_weight(path[i], path[j])
+            dist2 = problem.get_weight(path[i], path[0])
+            if min_distance > dist1+dist2:
+                min_distance = dist1+dist2
+                closest = [path[j], dist1, path[0], dist2]
+        else:
+            dist1 = problem.get_weight(path[i], path[j])
+            dist2 = problem.get_weight(path[i], path[j+1])
+            if min_distance > dist1+dist2:
+                min_distance = dist1+dist2
+                closest = [path[j], dist1, path[j+1], dist2]
+    return min_distance, closest
+
+def potential_idea5(problem, path, c, closest): #lijkt te werken, heel erg vergelijkbaar met 4
     result = 0
+    closest_edge = {}
     for i in range(len(path)):
-        min_distance = np.infty
-        for j in range(len(path)):
-            if j == i or j == i-1 or (i == 0 and j == len(path)-1):
-                continue
-            if j == len(path)-1:
-                distance = problem.get_weight(path[i], path[j]) + problem.get_weight(path[i], path[0])
+        min_distance, closest_edge[path[i]] = min_dist_inserted_in_edge(problem, path, i)
+
+        if i == 0:
+            result += problem.get_weight(path[i], path[i+1]) #Original objective
+            result += c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[len(path)-1], path[i]))/min_distance #Potential KPI
+        elif i == len(path)-1:
+            result += problem.get_weight(path[i], path[0]) #Original objective
+            result += c*(problem.get_weight(path[i], path[0])+problem.get_weight(path[i-1], path[i]))/min_distance #Potential KPI
+        else:
+            result += problem.get_weight(path[i], path[i+1]) #Original objective
+            result += c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[i-1], path[i]))/min_distance #Potential KPI
+    return result, closest_edge
+
+def potential_idea5_change(problem, path, curr_length, x, y, c, closest):
+    closest_edges = closest
+    length, closest_edges = no_potential_change(problem, path, curr_length, x, y, c, closest_edges)
+    for i in range(len(path)):
+        if i == x:
+            min_distance_old = closest_edges[path[i]][1]+closest_edges[path[i]][3]
+            if closest_edges[path[i]][0] == path[y] and closest_edges[path[i]][2] == path[y+1]:
+                min_distance, closest_edges[path[i]] = min_dist_inserted_in_edge(problem, path, i, [x,y])
+                dist1 = problem.get_weight(path[i], path[x+1])
+                dist2 = problem.get_weight(path[i], path[y+1])
+                if min_distance > dist1+dist2:
+                    min_distance = dist1+dist2
+                    closest_edges[path[i]] = [path[x+1], dist1, path[y+1], dist2]
             else:
-                distance = problem.get_weight(path[i], path[j]) + problem.get_weight(path[i], path[j+1])
-            if min_distance > distance:
-                min_distance = distance
+                min_distance = min_distance_old
+            if i == 0:
+                length -= c*(problem.get_weight(path[i], path[y])+problem.get_weight(path[len(path)-1], path[i]))/min_distance_old
+                length += c*(problem.get_weight(path[i], path[y])+problem.get_weight(path[len(path)-1], path[i]))/min_distance 
+            else:
+                length -= c*(problem.get_weight(path[i], path[y])+problem.get_weight(path[i-1], path[i]))/min_distance_old 
+                length += c*(problem.get_weight(path[i], path[y])+problem.get_weight(path[i-1], path[i]))/min_distance 
 
-        if i == 0:
-            result += problem.get_weight(path[i], path[i+1]) + c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[len(path)-1], path[i]))/min_distance
-        elif i == len(path)-1:
-            result += problem.get_weight(path[i], path[0]) + c*(problem.get_weight(path[i], path[0])+problem.get_weight(path[i-1], path[i]))/min_distance
-        else:
-            result += problem.get_weight(path[i], path[i+1]) + c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[i-1], path[i]))/min_distance
-    return result
+        elif i == x+1:
+            min_distance_old = problem.get_weight(path[i], closest_edges[path[i]][0])+problem.get_weight(path[i], closest_edges[path[i]][1])
+            if closest_edges[path[i]][0] == path[y] and closest_edges[path[i]][1] == path[y+1]:
+                min_distance, closest_edges[path[i]] = min_dist_inserted_in_edge(problem, path, i, [x,y])
+                new_dist =  problem.get_weight(path[i], path[x])+problem.get_weight(path[i], path[y])
+                if min_distance > new_dist:
+                    min_distance = new_dist
+                    closest_edges[path[i]] = [path[x], path[y]]
+            else:
+                min_distance = min_distance_old
+            if i == len(path):
+                length -= c*(problem.get_weight(path[i], path[y+1])+problem.get_weight(path[i], path[0]))/min_distance_old
+                length += c*(problem.get_weight(path[i], path[y+1])+problem.get_weight(path[i], path[0]))/min_distance 
+            else:
+                length -= c*(problem.get_weight(path[y+1], path[i])+problem.get_weight(path[i], path[i+1]))/min_distance_old 
+                length += c*(problem.get_weight(path[y+1], path[i])+problem.get_weight(path[i], path[i+1]))/min_distance 
 
-def potential_idea4(problem, path, c): #Lijkt te werken
+        if i == y:
+            min_distance_old = problem.get_weight(path[i], closest_edges[path[i]][0])+problem.get_weight(path[i], closest_edges[path[i]][1])
+            if closest_edges[path[i]][0] == path[x] and closest_edges[path[i]][1] == path[x+1]:
+                min_distance, closest_edges[path[i]] = min_dist_inserted_in_edge(problem, path, i, [x,y])
+                new_dist = problem.get_weight(path[i], path[x+1])+problem.get_weight(path[i], path[y+1])
+                if min_distance > new_dist:
+                    min_distance = new_dist
+                    closest_edges[path[i]] = [path[x+1], path[y+1]]
+            else:
+                min_distance = min_distance_old
+            if i == 0:
+                length -= c*(problem.get_weight(path[i], path[x])+problem.get_weight(path[len(path)-1], path[i]))/min_distance_old
+                length += c*(problem.get_weight(path[i], path[x])+problem.get_weight(path[len(path)-1], path[i]))/min_distance 
+            else:
+                length -= c*(problem.get_weight(path[i], path[x])+problem.get_weight(path[i-1], path[i]))/min_distance_old 
+                length += c*(problem.get_weight(path[i], path[x])+problem.get_weight(path[i-1], path[i]))/min_distance 
+
+        elif i == y+1:
+            min_distance_old = problem.get_weight(path[i], closest_edges[path[i]][0])+problem.get_weight(path[i], closest_edges[path[i]][1])
+            if closest_edges[path[i]][0] == path[x] and closest_edges[path[i]][1] == path[x+1]:
+                min_distance, closest_edges[path[i]] = min_dist_inserted_in_edge(problem, path, i, [x,y])
+                new_dist =  problem.get_weight(path[i], path[x])+problem.get_weight(path[i], path[y])
+                if min_distance > new_dist:
+                    min_distance = new_dist
+                    closest_edges[path[i]] = [path[x], path[y]]
+            else:
+                min_distance = min_distance_old
+            if i == len(path):
+                length -= c*(problem.get_weight(path[i], path[x+1])+problem.get_weight(path[i], path[0]))/min_distance_old
+                length += c*(problem.get_weight(path[i], path[x+1])+problem.get_weight(path[i], path[0]))/min_distance 
+            else:
+                length -= c*(problem.get_weight(path[x+1], path[i])+problem.get_weight(path[i], path[i+1]))/min_distance_old 
+                length += c*(problem.get_weight(path[x+1], path[i])+problem.get_weight(path[i], path[i+1]))/min_distance 
+
+        elif (closest_edges[path[i]][0] == path[x] and closest_edges[path[i]][1] == path[x+1]) or (closest_edges[path[i]][0] == path[y] and closest_edges[path[i]][1] == path[y+1]):
+            min_distance_old = problem.get_weight(path[i], closest_edges[path[i]][0])+problem.get_weight(path[i], closest_edges[path[i]][1])
+            min_distance, closest_edges[path[i]] = min_dist_inserted_in_edge(problem, path, i, [x,y])
+            new_dist = problem.get_weight(path[i], path[x])+problem.get_weight(path[i], path[y])
+            if min_distance > new_dist:
+                min_distance = new_dist
+                closest_edges[path[i]] = [path[x], path[y]]
+            new_dist = problem.get_weight(path[i], path[x+1])+problem.get_weight(path[i], path[y+1])
+            if min_distance > new_dist:
+                min_distance = new_dist
+                closest_edges[path[i]] = [path[x+1], path[y+1]]
+
+            if i == 0:
+                length -= c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[len(path)-1], path[i]))/min_distance_old
+                length += c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[len(path)-1], path[i]))/min_distance 
+            elif i == len(path)-1:
+                length -= c*(problem.get_weight(path[i], path[0])+problem.get_weight(path[i-1], path[i]))/min_distance_old 
+                length += c*(problem.get_weight(path[i], path[0])+problem.get_weight(path[i-1], path[i]))/min_distance 
+            else:
+                length -= c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[i-1], path[i]))/min_distance_old
+                length += c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[i-1], path[i]))/min_distance
+    return length, closest_edges
+
+def potential_idea4(problem, path, c, closest): #Lijkt te werken
     result = 0
     for i in range(len(path)):
-        min_distance1 = np.infty
-        min_distance2 = np.infty
-        for j in range(len(path)):
-            if j == i:
-                continue
-            distance = problem.get_weight(path[i], path[j])
-            if min_distance1 > distance:
-                min_distance1 = distance
-            elif distance < min_distance2 and distance >= min_distance1:
-                min_distance2 = distance
         if i == 0:
-            result += problem.get_weight(path[i], path[i+1]) + c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[len(path)-1], path[i]))/(min_distance1+min_distance2)
+            result += problem.get_weight(path[i], path[i+1]) #original objective
+            result += c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[len(path)-1], path[i]))/(closest[path[i]][1]+closest[path[i]][3]) #Potential KPI
         elif i == len(path)-1:
-            result += problem.get_weight(path[i], path[0]) + c*(problem.get_weight(path[i], path[0])+problem.get_weight(path[i-1], path[i]))/(min_distance1+min_distance2)      
+            result += problem.get_weight(path[i], path[0]) #original objective
+            result += c*(problem.get_weight(path[i], path[0])+problem.get_weight(path[i-1], path[i]))/(closest[path[i]][1]+closest[path[i]][3]) #Potential KPI   
         else:
-            result += problem.get_weight(path[i], path[i+1]) + c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[i-1], path[i]))/(min_distance1+min_distance2)    
-    return result
+            result += problem.get_weight(path[i], path[i+1]) #original objective
+            result += c*(problem.get_weight(path[i], path[i+1])+problem.get_weight(path[i-1], path[i]))/(closest[path[i]][1]+closest[path[i]][3]) #Potential KPI
+    return result, closest
 
-def potential_idea3(problem, path, c): # lijkt te werken, geen logische uitleg (- ook goed??)
+def potential_idea4_change(problem, path, curr_length, x, y, c, closest):
+    length, closest = no_potential_change(problem, path, curr_length, x, y, c, closest)
+    if x == len(path)-1:
+        x2 = 0
+    else:
+        x2 = x+1
+    if y == len(path)-1:
+        y2 = 0
+    else:
+        y2 = y+1
+    length -= c*problem.get_weight(path[x], path[x2])/(closest[path[x]][1]+closest[path[x]][3]) 
+    - c*problem.get_weight(path[y], path[y2])/(closest[path[y]][1]+closest[path[y]][3]) 
+    - c*problem.get_weight(path[x], path[x2])/(closest[path[x2]][1]+closest[path[x2]][3]) 
+    - c*problem.get_weight(path[y], path[y2])/(closest[path[y2]][1]+closest[path[y2]][3])
+    length += c*problem.get_weight(path[x], path[y])/(closest[path[x]][1]+closest[path[x]][3]) 
+    + c*problem.get_weight(path[x2], path[y2])/(closest[path[x2]][1]+closest[path[x2]][3]) 
+    + c*problem.get_weight(path[x], path[y])/(closest[path[y]][1]+closest[path[y]][3]) 
+    + c*problem.get_weight(path[x2], path[y2])/(closest[path[y2]][1]+closest[path[y2]][3])
+    return length, closest
+
+def potential_idea3(problem, path, c, min_weights): # lijkt te werken, geen logische uitleg (- ook goed??)
     result = 0
     for i in range(len(path)):
         min_distance = np.infty
