@@ -31,11 +31,9 @@ def local_search(problem, path_start, c, pot_fct, closest_nodes):
         path2 = path
         length2 = curLength
         closest2 = closest
-        for i in range(0, n-1):
-            for j in range(i+1, n):
+        for i in range(0, n-2):
+            for j in range(i+2, n):
                 # print(i,j)
-                if j == i:
-                    continue
                 new_path = do2Opt(path, i, j)
                 new_length, new_closest = eval(pot_fct)(problem, new_path, c, closest_nodes)
                 # new_length, new_closest = eval(str(pot_fct)+'_change')(problem, path, curLength, i, j, c, closest)

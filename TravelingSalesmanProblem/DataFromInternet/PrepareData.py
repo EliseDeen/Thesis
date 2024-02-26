@@ -25,15 +25,17 @@ def prepare_data(files=[]):
         problem = tsplib95.load_problem("Thesis/TravelingSalesmanProblem/DataFromInternet/Data/"+str(file)+".tsp")
         # solution = tsplib95.load_solution("TSP/Data/"+str(file)+".opt.tour")
 
-        # path = (list(problem.get_nodes()).copy())
-        # random.shuffle(path)
-        path = [5, 13, 8, 3, 6, 7, 15, 14, 9, 11, 10, 16, 4, 1, 2, 12]
+        path = (list(problem.get_nodes()).copy())
+        random.shuffle(path)
+        # path = [5, 13, 8, 3, 6, 7, 15, 14, 9, 11, 10, 16, 4, 1, 2, 12]
         # print(path)
         
         closest_nodes = {} #len(path)*[[0, np.infty]]
         for i in path:
             closest_nodes[i] = [0, np.infty, 0, np.infty]
             for j in path:
+                if i == j:
+                    continue
                 weight = problem.get_weight(i, j)
                 if weight < closest_nodes[i][1]:
                     closest_nodes[i][0] = j
