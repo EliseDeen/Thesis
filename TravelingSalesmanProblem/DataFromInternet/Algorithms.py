@@ -34,13 +34,13 @@ def local_search(problem, path_start, c, pot_fct, closest_nodes):
         for i in range(0, n-2):
             for j in range(i+2, n):
                 # print(i,j)
-                new_path = do2Opt(path, i, j)
-                new_length, new_closest = eval(pot_fct)(problem, new_path, c, closest_nodes)
-                # new_length, new_closest = eval(str(pot_fct)+'_change')(problem, path, curLength, i, j, c, closest)
+                # new_path = do2Opt(path, i, j)
+                # new_length, new_closest = eval(pot_fct)(problem, new_path, c, closest)
+                new_length, new_closest = eval(str(pot_fct)+'_change')(problem, path, curLength, i, j, c, closest)
                 if new_length < length2:
-                    # print(i,j, new_length)
-                    path2 = new_path
-                    # path2 = do2Opt(path, i, j)
+                    # print('improvement: ', i,j, new_length)
+                    # path2 = new_path
+                    path2 = do2Opt(path, i, j)
                     length2 = new_length
                     closest2 = new_closest
                     foundImprovement = True
@@ -49,6 +49,8 @@ def local_search(problem, path_start, c, pot_fct, closest_nodes):
             curLength = length2
             closest = closest2
         number_of_iterations += 1
+        # if number_of_iterations > 25:
+        #     break
         time_end = time.time()
         times.append(time_end-time_start)
     return path, curLength, number_of_iterations+1, sum(times)/len(times)

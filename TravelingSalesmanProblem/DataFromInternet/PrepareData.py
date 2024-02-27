@@ -5,7 +5,7 @@ import numpy as np
 
 def read_opt_values():
     opt = {}
-    mydata  = pd.read_table("Thesis/TravelingSalesmanProblem/DataFromInternet/Data/Opt_values.txt", sep=' : ') #sep='\s+'
+    mydata  = pd.read_table("Thesis/TravelingSalesmanProblem/DataFromInternet/Data/Opt_values_changed.txt", sep=' : ') #sep='\s+'
 
     lst = mydata.values
     for value in lst:
