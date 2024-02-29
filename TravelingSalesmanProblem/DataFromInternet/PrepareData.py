@@ -27,10 +27,8 @@ def prepare_data(files=[]):
 
         path = (list(problem.get_nodes()).copy())
         random.shuffle(path)
-        # path = [5, 13, 8, 3, 6, 7, 15, 14, 9, 11, 10, 16, 4, 1, 2, 12]
-        # print(path)
         
-        closest_nodes = {} #len(path)*[[0, np.infty]]
+        closest_nodes = {}
         for i in path:
             closest_nodes[i] = [0, np.infty, 0, np.infty]
             for j in path:
@@ -44,8 +42,8 @@ def prepare_data(files=[]):
                     closest_nodes[i][2] = j
                     closest_nodes[i][3] = weight
         
-        data.append([problem, path, opt[file], closest_nodes])
+        data.append([problem, path, opt[file], closest_nodes, file])
         i += 1
 
-    print('Data succesful loaded')
+    #print('Data succesful loaded')
     return data
